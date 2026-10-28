@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Info de Conexão</title>
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; padding: 20px; background: #f4f4f9; }
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 400px; width: 100%; }
+        h2 { margin-top: 0; color: #333; }
+        .info-item { margin-bottom: 12px; font-size: 0.9rem; }
+        .label { font-weight: bold; color: #666; display: block; font-size: 0.8rem; text-transform: uppercase; }
+        .value { word-break: break-all; }
+        #map-container { margin-top: 15px; height: 150px; border-radius: 8px; overflow: hidden; border: 1px solid #ddd; }
+        iframe { width: 100%; height: 100%; border: 0; }
+        .loading { text-align: center; color: #888; font-style: italic; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>📍 Dados da Conexão</h2>
+    <div id="content" class="loading">Coletando dados...</div>
+
+    <div id="map-container" style="display:none;">
+        <!-- O iframe do mapa será injetado aqui via JS -->
+    </div>
+</div>
+
+<script>
+    async function getMyLocation() {
+        const content = document.getElementById('content');
+        
+        try {
+            // 1. Busca IP e Localização (API gratuita sem chave)
+            const res = await fetch('https://ipapi.co/json/');
+            const data = await res.json();
+
+            const ip = data.ip;
+            const city = data.city || 'N/A';
+            const region = data.region || '';
+            const country = data.country_name || 'N/A';
+            const isp = data.org || 'N/A';
+            const lat = data.latitude;
+            const lon = data.longitude;
+            
+            // User Agent simplificado
+            const ua = navigator.userAgent;
+
+            // 2. Monta o HTML dos dados
+            content.innerHTML = `
+                <div class="info-item"><span class="label">IP Público</span><span class="value">${ip}</span></div>
+                <div class="info-item"><span class="label">Localização</span><span class="value">${city}, ${region} - ${country}</span></div>
+                <div class="info-item"><span class="label">Operadora (ISP)</span><span class="value">${isp}</span></div>
+                <div class="info-item"><span class="label">Navegador/OS</span><span class="value" style="font-size:0.75rem;">${ua.substring(0, 60)}...</span></div>
+                <div class="info-item"><span class="label">Fuso Horário</span><span class="value">${Intl.DateTimeFormat().resolvedOptions().timeZone}</span></div>
+            `;
+
+            // 3. Injeta o Mapa (OpenStreetMap)
+            if (lat && lon) {
+                const mapContainer = document.getElementById('map-container');
+                mapContainer.style.display = 'block';
+                const bbox = `${lon-0.05},${lat-0.05},${lon+0.05},${lat+0.05}`;
+                const marker = `${lat},${lon}`;
+                const src = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${marker}`;
+                mapContainer.innerHTML = `<iframe src="${src}" loading="lazy"></iframe>`;
+            }
+
+        } catch (error) {
+            content.innerHTML = `<span style="color:red">Erro ao obter dados: ${error.message}</span>`;
+        }
+    }
+
+    window.onload = getMyLocation;
+</script>
+
+</body>
+</html>
